@@ -1,5 +1,6 @@
 use anyhow::Result;
-use image::{ImageBuffer, Rgba};
+use dot_vox::DotVoxData;
+use image::{GenericImageView, ImageBuffer, Rgba};
 
 // Render an oblique sprite from a VOX model.
 
@@ -15,11 +16,39 @@ fn main() -> Result<()> {
 
     // Get dimensions of model and build a blank image that's x+z, y+z big.
 
-    let mut canvas = Image::new(
-        model.size.x as u32 + model.size.z as u32,
-        model.size.y as u32 + model.size.z as u32,
-    );
+    let w = model.size.x as u32 + model.size.z as u32;
+    let h = model.size.y as u32 + model.size.z as u32;
 
+    let mut canvas = Image::new(w * 2, h * 2);
+
+    draw_model(&scene, &mut canvas, (0, 0), false);
+    draw_model(&scene, &mut canvas, (0, h), true);
+
+    // Comparison image 1
+    if let Some(front_path) = std::env::args().nth(2) {
+        let image = image::open(front_path).expect("Failed to load front image");
+        // Draw front_image pixels on canvas
+        for (x, y, pixel) in image.pixels() {
+            canvas.put_pixel(x + w, y, pixel);
+        }
+    }
+
+    // Comparison image 2
+    if let Some(rear_path) = std::env::args().nth(3) {
+        let image = image::open(rear_path).expect("Failed to load rear image");
+        // Draw front_image pixels on canvas
+        for (x, y, pixel) in image.pixels() {
+            canvas.put_pixel(x + w, y + h, pixel);
+        }
+    }
+
+    canvas.save("output.png")?;
+
+    Ok(())
+}
+
+fn draw_model(scene: &DotVoxData, canvas: &mut Image, position: (u32, u32), flip: bool) {
+    let model = &scene.models[0];
     for z in 0..model.size.z {
         for y in 0..model.size.y {
             for x in 0..model.size.x {
@@ -31,16 +60,16 @@ fn main() -> Result<()> {
                     continue;
                 };
                 let color = scene.palette[voxel.i as usize];
-                let y = model.size.y - y - 1;
+                let y = if flip { y } else { model.size.y - y - 1 };
                 let z = model.size.z - z - 1;
                 let x = x + z / 2;
                 let y = y + z / 2;
-                canvas.put_pixel(x, y, Rgba([color.r, color.g, color.b, 255]));
+                canvas.put_pixel(
+                    x + position.0,
+                    y + position.1,
+                    Rgba([color.r, color.g, color.b, 255]),
+                );
             }
         }
     }
-
-    canvas.save("output.png")?;
-
-    Ok(())
 }
