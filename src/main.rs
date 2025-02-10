@@ -136,13 +136,15 @@ pub struct VoxelMatch {
 }
 
 pub fn build_model(views: &[Prism]) -> HashMap<IVec3, Pixel> {
+    assert!(!views.is_empty());
+
     let mut hits: HashMap<IVec3, Vec<VoxelMatch>> = Default::default();
 
     // TODO: Define bounding box size from views.
     const N: i32 = 64;
     for z in -N..=N {
         for y in -N..=N {
-            'scan: for x in -N..=N {
+            for x in -N..=N {
                 let pos = vec3(x as f32, y as f32, z as f32);
 
                 let mut matches = Vec::new();
@@ -152,14 +154,10 @@ pub fn build_model(views: &[Prism]) -> HashMap<IVec3, Pixel> {
                             color,
                             normal: view.normal(),
                         });
-                    } else {
-                        // If any of the views fails to match the position,
-                        // don't add it to the model.
-                        continue 'scan;
                     }
                 }
 
-                if !matches.is_empty() {
+                if matches.len() == views.len() {
                     hits.insert(ivec3(x, y, z), matches);
                 }
             }
@@ -170,23 +168,19 @@ pub fn build_model(views: &[Prism]) -> HashMap<IVec3, Pixel> {
     let mut ret = HashMap::new();
     for (pos, matches) in &hits {
         let mut exposed_faces = Vec::new();
-        for x in -1..=1 {
-            for y in -1..=1 {
-                for z in -1..=1 {
-                    // We should skip the part where they're all 0, but that
-                    // hits the center voxel, which is always filled so it
-                    // shouldn't do anything in any case.
+        for x in -1i32..=1 {
+            for y in -1i32..=1 {
+                for z in -1i32..=1 {
+                    if x.abs() + y.abs() + z.abs() != 1 {
+                        continue;
+                    }
+
                     let d = ivec3(x, y, z);
                     if !hits.contains_key(&(pos + d)) {
                         exposed_faces.push(d.as_vec3());
                     }
                 }
             }
-        }
-
-        // Interior voxel, skip copying.
-        if exposed_faces.is_empty() {
-            continue;
         }
 
         // Crude voxel surface normal based on open faces.
