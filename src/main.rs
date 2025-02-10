@@ -303,16 +303,16 @@ impl From<Camera> for Mat4 {
 
 fn main() -> Result<()> {
     let mut views = Vec::new();
-    for (camera, file) in [
-        (ObliqueNorth, "sprites/noble0.png"),
-        (ObliqueWest, "sprites/noble1.png"),
-        (ObliqueSouth, "sprites/noble2.png"),
-        (ObliqueEast, "sprites/noble3.png"),
-    ] {
-        let image = Image::from(image::open(file)?);
+    let sprite = "noble";
+
+    for (i, camera) in [ObliqueNorth, ObliqueWest, ObliqueSouth, ObliqueEast]
+        .iter()
+        .enumerate()
+    {
+        let image = Image::from(image::open(format!("sprites/{sprite}{i}.png"))?);
         let mut image = FocusImage::try_from(image)?;
         image.remove_outline(Rgba([0, 0, 0, 255]));
-        views.push(Prism::new(image, camera)?);
+        views.push(Prism::new(image, *camera)?);
     }
 
     let model = build_model(&views);
