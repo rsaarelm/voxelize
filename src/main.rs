@@ -9,6 +9,8 @@ use vox_format::{
     VoxData,
 };
 
+// TODO: Use dot-vox instead of vox-format
+
 pub type Pixel = Rgba<u8>;
 pub type Image = ImageBuffer<Pixel, Vec<u8>>;
 

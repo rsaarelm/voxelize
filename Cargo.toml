@@ -5,7 +5,8 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.95"
+dot_vox = "5.1.1"
 glam = "0.29"
 image = "0.25"
 itertools = "0.14"
-vox-format = "0.1"
+vox-format = { version = "0.1", features = ["image"] }
