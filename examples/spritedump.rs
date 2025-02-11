@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anyhow::Result;
 use dot_vox::DotVoxData;
 use image::{GenericImageView, ImageBuffer, Rgba};
@@ -49,6 +51,7 @@ fn main() -> Result<()> {
 
 fn draw_model(scene: &DotVoxData, canvas: &mut Image, position: (u32, u32), flip: bool) {
     let model = &scene.models[0];
+    let mut filled = HashSet::new();
     for z in 0..model.size.z {
         for y in 0..model.size.y {
             for x in 0..model.size.x {
@@ -64,11 +67,24 @@ fn draw_model(scene: &DotVoxData, canvas: &mut Image, position: (u32, u32), flip
                 let z = model.size.z - z - 1;
                 let x = x + z / 2;
                 let y = y + z / 2;
-                canvas.put_pixel(
-                    x + position.0,
-                    y + position.1,
-                    Rgba([color.r, color.g, color.b, 255]),
-                );
+                let (x, y) = (x + position.0, y + position.1);
+                canvas.put_pixel(x, y, Rgba([color.r, color.g, color.b, 255]));
+                filled.insert((x, y));
+            }
+        }
+    }
+
+    // Draw black outline around the drawn model.
+    for &(x, y) in &filled {
+        for dx in -1i32..=1 {
+            for dy in -1i32..=1 {
+                if dx.abs() + dy.abs() == 1 {
+                    let x = (x as i32 + dx) as u32;
+                    let y = (y as i32 + dy) as u32;
+                    if !filled.contains(&(x, y)) {
+                        canvas.put_pixel(x, y, Rgba([0, 0, 0, 255]));
+                    }
+                }
             }
         }
     }
