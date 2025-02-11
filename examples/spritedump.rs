@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use dot_vox::DotVoxData;
-use image::{GenericImageView, ImageBuffer, Rgba};
+use image::{ImageBuffer, Rgba};
 
 // Render an oblique sprite from a VOX model.
 
@@ -28,20 +28,24 @@ fn main() -> Result<()> {
 
     // Comparison image 1
     if let Some(front_path) = std::env::args().nth(2) {
-        let image = image::open(front_path).expect("Failed to load front image");
-        // Draw front_image pixels on canvas
-        for (x, y, pixel) in image.pixels() {
-            canvas.put_pixel(x + w, y, pixel);
-        }
+        blit(
+            &image::open(front_path)
+                .expect("failed to load reference image")
+                .into(),
+            &mut canvas,
+            (w, 0),
+        );
     }
 
     // Comparison image 2
     if let Some(rear_path) = std::env::args().nth(3) {
-        let image = image::open(rear_path).expect("Failed to load rear image");
-        // Draw front_image pixels on canvas
-        for (x, y, pixel) in image.pixels() {
-            canvas.put_pixel(x + w, y + h, pixel);
-        }
+        blit(
+            &image::open(rear_path)
+                .expect("failed to load reference image")
+                .into(),
+            &mut canvas,
+            (w, h),
+        );
     }
 
     canvas.save("output.png")?;
@@ -74,7 +78,7 @@ fn draw_model(scene: &DotVoxData, canvas: &mut Image, position: (u32, u32), flip
         }
     }
 
-    // Draw black outline around the drawn model.
+    // Trace black outline around the drawing.
     for &(x, y) in &filled {
         for dx in -1i32..=1 {
             for dy in -1i32..=1 {
@@ -87,5 +91,14 @@ fn draw_model(scene: &DotVoxData, canvas: &mut Image, position: (u32, u32), flip
                 }
             }
         }
+    }
+}
+
+fn blit(src: &Image, canvas: &mut Image, (px, py): (u32, u32)) {
+    // Interpret corner pixel as transparent color and don't copy it.
+    let key = src.get_pixel(0, 0);
+
+    for (x, y, pixel) in src.enumerate_pixels().filter(|&(_, _, p)| p != key) {
+        canvas.put_pixel(x + px, y + py, *pixel);
     }
 }
