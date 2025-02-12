@@ -48,6 +48,10 @@ struct DumpArgs {
     #[arg(long, default_value = "1.0")]
     scale: f32,
 
+    /// Rotation in degrees
+    #[arg(long, default_value = "0.0")]
+    yaw: f32,
+
     /// Apply procedural shading.
     #[arg(long)]
     shading: bool,
@@ -56,7 +60,7 @@ struct DumpArgs {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Command::Dump(args) => dump(args.scale, args.shading, &args.model)?,
+        Command::Dump(args) => dump(args.scale, args.shading, args.yaw, &args.model)?,
         Command::Paint(args) => {
             let camera = if args.back {
                 Camera::ObliqueSouth
@@ -70,7 +74,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn dump(scale: f32, shading: bool, model: &str) -> Result<()> {
+fn dump(scale: f32, shading: bool, yaw: f32, model: &str) -> Result<()> {
     let output_name = PathBuf::from(model).with_extension("png");
 
     let scene = dot_vox::load(model).map_err(|e| anyhow!(e))?;
@@ -80,7 +84,8 @@ fn dump(scale: f32, shading: bool, model: &str) -> Result<()> {
     // Scale according to scale param.
     let camera = Mat4::from_scale(Vec3::splat(scale))
         * Mat4::from_translation(vec3(0.0, 0.0, -50.0))
-        * camera;
+        * camera
+        * Mat4::from_rotation_z(yaw.to_radians());
 
     let view = voxelize::build_view(&scene.models[0], &camera);
 
