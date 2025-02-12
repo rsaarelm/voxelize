@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.95"
-dot_vox = "5.1.1"
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+dot_vox = "5"
 glam = "0.29"
 image = "0.25"
 itertools = "0.14"
