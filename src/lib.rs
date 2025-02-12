@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use dot_vox::DotVoxData;
-use glam::{ivec2, vec2, vec3, IVec2, IVec3, Mat4, Vec2, Vec3};
+use glam::{ivec2, ivec3, vec2, vec3, IVec2, IVec3, Mat4, Vec2, Vec3};
 use image::{ImageBuffer, Rgba};
 
 pub type Pixel = Rgba<u8>;
@@ -37,6 +37,29 @@ pub trait Body {
 
     fn bounding_box(&self) -> BoundingBox {
         Default::default()
+    }
+
+    fn normal(&self, pos: Vec3) -> Vec3 {
+        let mut n = Vec3::ZERO;
+        for x in -1..=1i32 {
+            for y in -1..=1i32 {
+                for z in -1..=1i32 {
+                    if x.abs() + y.abs() + z.abs() != 1 {
+                        continue;
+                    }
+                    let d = ivec3(x, y, z).as_vec3();
+                    if self.sample(pos + d).is_none() {
+                        n += d;
+                    }
+                }
+            }
+        }
+
+        if n.length_squared() > 0.0 {
+            n.normalize()
+        } else {
+            Vec3::ZERO
+        }
     }
 }
 

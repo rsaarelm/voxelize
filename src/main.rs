@@ -3,7 +3,7 @@ use std::{fs::File, path::PathBuf};
 use anyhow::{anyhow, Result};
 use clap::{Args, Parser, Subcommand};
 use glam::{vec3, IVec2, Mat4, Vec3};
-use voxelize::{Camera, DotVoxExt, Image, Rect};
+use voxelize::{Body, Camera, DotVoxExt, Image, Rect};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -47,12 +47,16 @@ struct DumpArgs {
     /// How big should the output image be.
     #[arg(long, default_value = "1.0")]
     scale: f32,
+
+    /// Apply procedural shading.
+    #[arg(long)]
+    shading: bool,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Command::Dump(args) => dump(args.scale, &args.model)?,
+        Command::Dump(args) => dump(args.scale, args.shading, &args.model)?,
         Command::Paint(args) => {
             let camera = if args.back {
                 Camera::ObliqueSouth
@@ -66,7 +70,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn dump(scale: f32, model: &str) -> Result<()> {
+fn dump(scale: f32, shading: bool, model: &str) -> Result<()> {
     let output_name = PathBuf::from(model).with_extension("png");
 
     let scene = dot_vox::load(model).map_err(|e| anyhow!(e))?;
@@ -89,14 +93,28 @@ fn dump(scale: f32, model: &str) -> Result<()> {
     // Size of the border to put around the image in pixels.
     const BORDER: u32 = 1;
 
+    let sun = vec3(5.0, -3.0, 2.0).normalize();
+
     let mut canvas = Image::new(
         (p2.x - p1.x) as u32 + 1 + BORDER * 2,
         (p2.y - p1.y) as u32 + 1 + BORDER * 2,
     );
-    for (pos, (_, idx)) in &view {
+    for (pos, (p, idx)) in &view {
         let color = scene.palette[*idx as usize];
-        let color = image::Rgba([color.r, color.g, color.b, 255]);
+        let mut color = image::Rgba([color.r, color.g, color.b, 255]);
         let pos = *pos - p1;
+
+        if shading {
+            let normal = scene.models[0].normal(*p);
+            let light = normal.dot(sun).max(0.4);
+            color = image::Rgba([
+                (color[0] as f32 * light) as u8,
+                (color[1] as f32 * light) as u8,
+                (color[2] as f32 * light) as u8,
+                255,
+            ]);
+        }
+
         canvas.put_pixel(pos.x as u32 + BORDER, pos.y as u32 + BORDER, color);
     }
 
