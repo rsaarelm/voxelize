@@ -1,5 +1,5 @@
 [package]
-name = "voxelizer"
+name = "voxelize"
 version = "0.1.0"
 edition = "2021"
 
