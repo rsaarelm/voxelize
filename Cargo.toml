@@ -9,4 +9,8 @@ dot_vox = "5.1.1"
 glam = "0.29"
 image = "0.25"
 itertools = "0.14"
-vox-format = { version = "0.1", features = ["image"] }
+
+[dev-dependencies]
+# TODO: Vox-format is obsolete and was used by the generate example that was a
+# failed experiment, should be removed.
+vox-format = "0.1"
